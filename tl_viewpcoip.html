@@ -1,0 +1,689 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width">
+	{% if autoRefresh %}<meta http-equiv="refresh" content="5" >{% endif %}
+
+	<title>VMware Diagnostic Tools</title>
+
+	<link rel="icon" type="image/png" href="/static/img/favicon.png">
+	<link rel="stylesheet" href="/static/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/static/css/style.css">
+	<link rel="stylesheet" href="/static/css/bootstrap-responsive.min.css">
+	<link rel="stylesheet" type="text/css" href="/static/css/jquery.fileupload-ui.css">
+	<script src="/static/js/libs/jquery-1.7.2.min.js"></script>
+	<script src="/static/js/libs/modernizr-2.5.3-respond-1.1.0.min.js"></script>
+	<script src="/static/js/libs/bootstrap/bootstrap.js"></script>
+	<script src="/static/js/libs/Highcharts/highstock.js"></script>
+	<script src="/static/js/libs/Highcharts/modules/exporting.js"></script>
+	<link rel="stylesheet" href="/static/css/jquery-ui.min.css">
+	<script src="/static/js/libs/jquery-ui.min.js"></script>
+	<script>
+		document.include = function (url) {
+			if ('undefined' == typeof(url)) return false;
+			var p,rnd;
+			if (document.all){
+				// For IE, create an ActiveX Object instance
+				p = new ActiveXObject("Microsoft.XMLHTTP");
+			}
+			else {
+				// For mozilla, create an instance of XMLHttpRequest.
+				p = new XMLHttpRequest();
+			}
+			// Prevent browsers from caching the included page
+			// by appending a random  number (optional)
+			rnd = Math.random().toString().substring(2);
+			url = url.indexOf('?')>-1 ? url+'&rnd='+rnd : url+'?rnd='+rnd;
+			// Open the url and write out the response
+			p.open("GET",url,false);
+			p.send(null);
+			document.write( p.responseText );
+		}
+	</script>
+{%if bundles|length %}
+	{% for bundle in bundles %}
+	<script>
+		$(function() {
+			function showPropertyDialog(divname) {
+				var diag_minwidth = 600;
+				var diag_maxwidth = null;
+				var diag_minheight = 150;
+				var diag_maxheight = 600;
+				$("#"+divname).dialog({modal:true, minWidth:diag_minwidth, maxWidth:diag_maxwidth, minHeight:diag_minheight, maxHeight:diag_maxheight, buttons:{Ok:function(){$( this ).dialog( "close" );}}});
+			}
+		{%if bundle.timezone|length %}
+			$("#timezone_{{bundle.index}}").button().on( "click", function() {
+				showPropertyDialog("div_timezone_{{bundle.index}}")
+			});
+		{%endif%}
+		{% if bundle.dumps|length %}
+			$("#coredump_{{bundle.index}}").button().on( "click", function() {
+				showPropertyDialog("div_coredump_{{bundle.index}}")
+			});
+		{%endif%}
+		{% if bundle.sysinfo %}
+			$("#sysinfo_{{bundle.index}}").button().on( "click", function() {
+				showPropertyDialog("div_sysinfo_{{bundle.index}}")
+			});
+		{% endif%}
+		{% if bundle.cpu|length or bundle.memory|length%}
+			$("#utilization_{{bundle.index}}").button().on( "click", function() {
+				popupwindow("viewpcoip_utilization_{{bundle.index}}.html")
+			});
+		{%endif%}
+		{% if bundle.psg_connections|length or bundle.psg_highwatermark|length%}
+			$("#psgconn_{{bundle.index}}").button().on( "click", function() {
+				popupwindow("viewpcoip_psg_users_{{bundle.index}}.html")
+			});
+		{%endif%}
+		{% if bundle.psg_service_status|length%}
+			$("#psgsvr_{{bundle.index}}").button().on( "click", function() {
+				popupwindow("viewpcoip_psg_status_{{bundle.index}}.html")
+			});
+		{% endif %}
+		{% if bundle.wsnm_status|length%}
+			$("#wsnmsvr_{{bundle.index}}").button().on( "click", function() {
+				popupwindow("viewpcoip_wsnm_{{bundle.index}}.html")
+			});
+		{%endif%}
+		{% if bundle.pcoipserver %}
+			$("#pcoip_perf_{{bundle.index}}").button().on( "click", function() {
+				popupwindow("viewpcoip_perf_list_{{bundle.index}}.html")
+			});
+		{%endif%}
+		});
+	</script>
+	{% endfor %}
+{% endif %}
+</head>
+<body>
+
+{% include 'inc_navbar.html' %}
+	{% if script or scripts %}
+	<div style="right:0; bottom:0; position:fixed; margin-bottom:20px; margin-right:20px;">
+		<a href="#top">Go to top <i class="icon-chevron-up"></i></a>
+	</div>
+	{% endif %}
+	<div class="container">
+		<div class="row-fluid">
+			{% if script or scripts %}
+			<div class="span12 tabbable tabs-left">
+				<script>
+					document.include('out_menu.html');
+					$(document).ready(function() {
+						{% if scripts %}
+							$('#overview').addClass('active');
+						{% else %}
+							$('#{{ script.name }}').addClass('active');
+						{% endif %}
+					});
+				</script>
+				<div class="tab-content">
+			{% endif %}
+
+{% include 'inc_script_header.html' %}
+<script>
+	document.include('out_case.html');
+</script>
+<script type="text/javascript">
+	function popupwindow(url, title)
+	{
+		window.open(url, title, "toolbar=no,menubar=no,status=no,location=no,scrollbars=yes,resizable=yes,z-look=yes");
+		return false;
+	}
+</script>
+<div class="span12 tabbable tabs-top" style="margin-top:0px;margin-bottom:0px;margin-left:0px;margin-right:0px;">
+	<ul class="nav nav-tabs" style="margin-top:0px;margin-bottom:0px;margin-left:0px;margin-right:0px;font-size:18px;">
+		<li style="margin-top:10px" class="active"><a href="#BASICREPORT" data-toggle="tab"> <b>Basic Reports</b></a></li>
+		<li style="margin-top:10px"><a href="#ADVREOPRT" data-toggle="tab"><b>PCoIP Sessions</b></a></li>
+		<li style="margin-top:10px"><a href="#Performance" data-toggle="tab"><b>Network Performance</b></a></li>
+		<li style="margin-top:10px"><a href="#LOGFILE" data-toggle="tab"> <b>Log Files</b></a></li>
+	</ul>
+	<div class="tab-content">
+		<div id="BASICREPORT" class="tab-pane active">
+			<br/>
+			{%if bundles|length %}
+				<h4 class="blue">Found the following {{bundles|length}} log {%if 1 == bundles|length %}bundle{% else %}bundles{%endif%}.</h4>
+				<br/>
+				<table width="800" class="table table-striped table-bordered table-condensed sortable">
+					<thead>
+						<tr>
+							<th style="text-align:center" width="40">#</th>
+							<th>Log Bundle</th>
+							<th>Log Type</th>
+							<th>Version</th>
+						</tr>
+					</thead>
+					<tbody>
+					{% for bundle in bundles %}
+						<tr>
+							<td><div class="center"><a href="#sys_bundle{{ forloop.counter }}">{{ forloop.counter }}</a></div></td>
+							<td>{{ bundle.name }}</td>
+							<td>{{ bundle.type }}</td>
+							<td>{{ bundle.version }}</td>
+						</tr>
+					{% endfor %}
+					</tbody>
+				</table>
+				{% for bundle in bundles %}
+					<h4 id="sys_bundle{{ forloop.counter }}">Log bundle #{{ forloop.counter }}</h4>
+					<table width="800" class="table table-striped table-bordered table-condensed">
+						<thead>
+							<tr>
+								<th style="text-align:center" width="40">#</th>
+								<th>Log Bundle</th>
+								<th>Log Type</th>
+								<th>Version</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><div class="center">{{ forloop.counter }}</div></td>
+								<td>{{ bundle.name }}</td>
+								<td>{{ bundle.type }}</td>
+								<td>{{ bundle.version }}</td>
+							</tr>
+						</tbody>
+					</table>
+					<table width="800" class="table table-striped table-bordered table-condensed">
+						<thead>
+							<tr>
+								<th style="text-align:center" width="300">Report Name</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% if bundle.dumps|length %}
+								<tr>
+									<td>Application Coredump</td>
+									<td><input type="button" id="coredump_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{%endif%}
+							{% if bundle.psg_connections|length or bundle.psg_highwatermark|length%}
+								<tr>
+									<td>PSG User Connection</td>
+									<td><input type="button" id="psgconn_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{%endif%}
+							{% if bundle.psg_service_status|length%}
+								<tr>
+									<td>PSG Service Status</td>
+									<td><input type="button" id="psgsvr_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{% endif %}
+							{% if bundle.cpu|length or bundle.memory|length%}
+								<tr>
+									<td>Resource Utilization</td>
+									<td><input type="button" id="utilization_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{%endif%}
+							{% if bundle.sysinfo %}
+								<tr>
+									<td>System Information</td>
+									<td><input type="button" id="sysinfo_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{% endif%}
+							{%if bundle.timezone|length %}
+								<tr>
+									<td>Time Zone Information</td>
+									<td><input type="button" id="timezone_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{%endif%}
+							{% if bundle.wsnm_status|length%}
+								<tr>
+									<td>View WSNM Service Status</td>
+									<td><input type="button" id="wsnmsvr_{{bundle.index}}" value="View"/></td>
+								</tr>
+							{%endif%}
+						</tbody>
+					</table>
+				{% endfor %}
+			{% else %}
+				<div class="alert alert-error">Could not find relevant files.</div>
+			{% endif %}
+		</div>
+		<div id="LOGFILE" class="tab-pane">
+			<br/>
+			{%if bundles|length %}
+				<h4 class="blue">Found the following {{bundles|length}} log {%if 1 == bundles|length %}bundle{% else %}bundles{%endif%}.</h4>
+				<br/>
+				<table width="800" class="table table-striped table-bordered table-condensed sortable">
+					<thead>
+						<tr>
+							<th style="text-align:center" width="40">#</th>
+							<th>Log Bundle</th>
+							<th>Log Type</th>
+							<th>Version</th>
+						</tr>
+					</thead>
+					<tbody>
+					{% for bundle in bundles %}
+						<tr>
+							<td><div class="center"><a href="#err_bundle{{ forloop.counter }}">{{ forloop.counter }}</a></div></td>
+							<td>{{ bundle.name }}</td>
+							<td>{{ bundle.type }}</td>
+							<td>{{ bundle.version }}</td>
+						</tr>
+					{% endfor %}
+					</tbody>
+				</table>
+				{% for bundle in bundles %}
+					<h4 id="err_bundle{{ forloop.counter }}">Log bundle #{{ forloop.counter }}</h4>
+					<table width="800" class="table table-striped table-bordered table-condensed">
+						<thead>
+							<tr>
+								<th style="text-align:center" width="40">#</th>
+								<th>Log Bundle</th>
+								<th>Log Type</th>
+								<th>Version</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><div class="center">{{ forloop.counter }}</div></td>
+								<td>{{ bundle.name }}</td>
+								<td>{{ bundle.type }}</td>
+								<td>{{ bundle.version }}</td>
+							</tr>
+						</tbody>
+					</table>
+					{% if bundle.highlightfiles %}
+						<table width="800" class="table table-striped table-bordered table-condensed sortable">
+							<thead>
+								<tr>
+									<th style="text-align:center" width="40">#</th>
+									<th>Start Time</th>
+									<th>End Time</th>
+									<th>Duration</th>
+									<th>Errors</th>
+									<th>Warnings</th>
+									<th>File Size</th>
+									<th>File</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for item in bundle.highlightfiles %}
+								<tr>
+									<td><div class="center"><a title="{{item.5}}" href="{{item.5}}" onclick="return popupwindow('{{item.5}}','{{item.5}}')" >{{ forloop.counter }}</a></div></td>
+									<td style="white-space:normal">{{ item.3 }}</td>
+									<td style="white-space:normal">{{ item.4 }}</td>
+									<td style="white-space:normal">{{ item.7 }}</td>
+									<td style="white-space:normal">{{ item.1 }}</td>
+									<td style="white-space:normal">{{ item.2 }}</td>
+									<td style="white-space:normal">{{ item.6|filesizeformat }}</td>
+									<td style="white-space:normal"><a title="{{item.5}}" href="{{item.5}}" onclick="return popupwindow('{{item.5}}','{{item.5}}')" >{{ item.0 }}</a></td>
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<div class="alert alert-error">Could not find relevant files.</div>
+					{% endif %}
+				{% endfor %}
+			{% else %}
+				<div class="alert alert-error">Could not find relevant files.</div>
+			{% endif %}
+		</div>
+		<div id="ADVREOPRT" class="tab-pane">
+			<br/>
+			{%if agentbundles|length or brokerbundles|length or clientbundles|length %}
+				<h4 class="blue">Found the following log bundles.</h4>
+				<br/>
+				<table width="800" class="table table-striped table-bordered table-condensed">
+					<thead>
+						<tr>
+							<th>Log Type</th>
+							<th>Log Bundle</th>
+							<th>Version</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% if agentbundles|length %}
+							<tr><td style="white-space:normal;" rowspan="{{agentbundles|length}}" valign="middle">Agent</td>
+							{% for bundle in agentbundles %}
+								{% if not forloop.first %}<tr>{%endif%}
+								<td>{{bundle.name}}</td><td>{{bundle.version}}</td></tr>
+							{% endfor %}
+						{% endif %}
+						{% if brokerbundles|length %}
+							<tr><td style="white-space:normal" rowspan="{{brokerbundles|length}}" valign="middle">Broker</td>
+							{% for bundle in brokerbundles %}
+								{% if not forloop.first %}<tr>{%endif%}
+								<td>{{bundle.name}}</td><td>{{bundle.version}}</td></tr>
+							{% endfor %}
+						{% endif %}
+						{% if clientbundles|length %}
+							<tr><td style="white-space:normal" rowspan="{{clientbundles|length}}" valign="middle">Client</td>
+							{% for bundle in clientbundles %}
+								{% if not forloop.first %}<tr>{%endif%}
+								<td>{{bundle.name}}</td><td>{{bundle.version}}</td></tr>
+							{% endfor %}
+						{% endif %}
+						</tr>
+					</tbody>
+				</table>
+				<h4> Found <img src="/static/img/status_error.png" width="20" height="20"> <a href="#session_errors">{{sessions.errors|length}}</a> session(s), <img src="/static/img/status_warning.png" width="20" height="20"> <a href="#session_warnings">{{sessions.warnings|length}}</a> session(s), <img src="/static/img/status_ok.png" width="20" height="20"> <a href="#session_preload">{{sessions.preload|length}}</a>  preload session(s) and <img src="/static/img/status_ok.png" width="20" height="20"> <a href="#session_ok">{{sessions.ok|length}}</a> session(s)</h4>
+				<hr/>
+				<h4 id="session_errors">PCoIP Error Session List</h4>
+					{% if sessions.errors|length %}
+						<table width="800" class="table table-striped table-bordered table-condensed sortable">
+							<thead>
+								<tr>
+									<th style="text-align:center" width="40">#</th>
+									<th width="40">Status</th>
+									<th>Start Time</th>
+									<th>End Time</th>
+									<th>Duration</th>
+									<th>Bundles</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for session in sessions.errors%}
+								<tr>
+										<td><div class="center"><a title="PCoIP Error Session #{{ forloop.counter }}" href="session_error_{{ forloop.counter }}.html" onclick="return popupwindow('session_error_{{ forloop.counter }}.html','PCoIP Error Session #{{ forloop.counter }}')" >{{ forloop.counter }}</a></div></td>
+										<td style="white-space:normal"><div class="center"><img src="/static/img/status_error.png" width="20" height="20"></div></td>
+										<td style="white-space:normal">{{ session.StartTime }}</td>
+										<td style="white-space:normal">{{ session.EndTime }}</td>
+										<td style="white-space:normal">{{ session.Duration }}</td>
+										<td style="white-space:normal">{% for bundlename in session.Bundles %}{{ bundlename }}{% if not forloop.last %}<br/>{%endif%}{% endfor %}</td>
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<div class="alert alert-error">There is no any error session found.</div>
+					{% endif %}
+				<h4 id="session_warnings">PCoIP Warning Session List</h4>
+					{% if sessions.warnings|length %}
+						<table width="800" class="table table-striped table-bordered table-condensed sortable">
+							<thead>
+								<tr>
+									<th style="text-align:center" width="40">#</th>
+									<th width="40">Status</th>
+									<th>Start Time</th>
+									<th>End Time</th>
+									<th>Duration</th>
+									<th>Bundles</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for session in sessions.warnings%}
+								<tr>
+										<td><div class="center"><a title="PCoIP Warning Session #{{ forloop.counter }}" href="session_warning_{{ forloop.counter }}.html" onclick="return popupwindow('session_warning_{{ forloop.counter }}.html','PCoIP Warning Session #{{ forloop.counter }}')" >{{ forloop.counter }}</a></div></td>
+										<td style="white-space:normal"><div class="center"><img src="/static/img/status_warning.png" width="20" height="20"></div></td>
+										<td style="white-space:normal">{{ session.StartTime }}</td>
+										<td style="white-space:normal">{{ session.EndTime }}</td>
+										<td style="white-space:normal">{{ session.Duration }}</td>
+										<td style="white-space:normal">{% for bundlename in session.Bundles %}{{ bundlename }}{% if not forloop.last %}<br/>{%endif%}{% endfor %}</td>
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<div class="alert alert-error">There is no any warning session found.</div>
+					{% endif %}										<h4 id="session_preload">PCoIP Preload Session List</h4>					<details>															{% if sessions.preload|length %}																<table width="800" class="table table-striped table-bordered table-condensed sortable">																	<thead>																		<tr>																			<th style="text-align:center" width="40">#</th>																			<th width="40">Status</th>																			<th>Start Time</th>																			<th>End Time</th>																			<th>Duration</th>																			<th>Bundles</th>																		</tr>																	</thead>																	<tbody>																	{% for session in sessions.preload%}																		<tr>																				<td><div class="center"><a title="PCoIP Preload Session #{{ forloop.counter }}" href="session_preload_{{ forloop.counter }}.html" onclick="return popupwindow('session_preload_{{ forloop.counter }}.html','PCoIP Preload Session #{{ forloop.counter }}')" >{{ forloop.counter }}</a></div></td>																				<td style="white-space:normal"><div class="center"><img src="/static/img/status_error.png" width="20" height="20"></div></td>																				<td style="white-space:normal">{{ session.StartTime }}</td>																				<td style="white-space:normal">{{ session.EndTime }}</td>																				<td style="white-space:normal">{{ session.Duration }}</td>																				<td style="white-space:normal">{% for bundlename in session.Bundles %}{{ bundlename }}{% if not forloop.last %}<br/>{%endif%}{% endfor %}</td>																		</tr>																	{% endfor %}																	</tbody>																</table>															{% else %}																<div class="alert alert-error">There is no any preload session found.</div>															{% endif %}										</details>																	
+				<h4 id="session_ok">PCoIP OK Session List</h4>
+					{% if sessions.ok|length %}
+						<table width="800" class="table table-striped table-bordered table-condensed sortable">
+							<thead>
+								<tr>
+									<th style="text-align:center" width="40">#</th>
+									<th width="40">Status</th>
+									<th>Start Time</th>
+									<th>End Time</th>
+									<th>Duration</th>
+									<th>Bundles</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for session in sessions.ok%}
+								<tr>
+										<td><div class="center"><a title="PCoIP OK Session #{{ forloop.counter }}" href="session_ok_{{ forloop.counter }}.html" onclick="return popupwindow('session_ok_{{ forloop.counter }}.html','PCoIP OK Session #{{ forloop.counter }}')" >{{ forloop.counter }}</a></div></td>
+										<td style="white-space:normal"><div class="center"><img src="/static/img/status_ok.png" width="20" height="20"></div></td>
+										<td style="white-space:normal">{{ session.StartTime }}</td>
+										<td style="white-space:normal">{{ session.EndTime }}</td>
+										<td style="white-space:normal">{{ session.Duration }}</td>
+										<td style="white-space:normal">{% for bundlename in session.Bundles %}{{ bundlename }}{% if not forloop.last %}<br/>{%endif%}{% endfor %}</td>
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<div class="alert alert-error">There is no any ok session found.</div>
+					{% endif %}
+			{% else %}
+				<div class="alert alert-error">Could not find relevant files.</div>
+			{% endif %}
+		</div>
+		<div id="Performance" class="tab-pane">
+			<br/>
+			{%if perfbundles|length %}
+				<h4 class="blue">Found the following {{perfbundles|length}} log {%if 1 == perfbundles|length %}bundle{% else %}bundles{%endif%}.</h4>
+				<br/>
+				<table width="800" class="table table-striped table-bordered table-condensed sortable">
+					<thead>
+						<tr>
+							<th style="text-align:center" width="40">#</th>
+							<th>Log Bundle</th>
+							<th>Log Type</th>
+							<th>Version</th>
+						</tr>
+					</thead>
+					<tbody>
+					{% for bundle in perfbundles %}
+						<tr>
+							<td><div class="center"><a href="#perf_bundle{{ forloop.counter }}">{{ forloop.counter }}</a></div></td>
+							<td>{{ bundle.name }}</td>
+							<td>{{ bundle.type }}</td>
+							<td>{{ bundle.version }}</td>
+						</tr>
+					{% endfor %}
+					</tbody>
+				</table>
+				{% for bundle in perfbundles %}
+					<h4 id="perf_bundle{{ forloop.counter }}">Log bundle #{{ forloop.counter }}</h4>
+					<table width="800" class="table table-striped table-bordered table-condensed">
+						<thead>
+							<tr>
+								<th style="text-align:center" width="40">#</th>
+								<th>Log Bundle</th>
+								<th>Log Type</th>
+								<th>Version</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><div class="center">{{ forloop.counter }}</div></td>
+								<td>{{ bundle.name }}</td>
+								<td>{{ bundle.type }}</td>
+								<td>{{ bundle.version }}</td>
+							</tr>
+						</tbody>
+					</table>
+					{% if bundle.pcoipserver %}
+						<table width="800" class="table table-striped table-bordered table-condensed sortable">
+							<thead>
+								<tr>
+									<th style="text-align:center" width="40">#</th>
+									<th>Start Time</th>
+									<th>End Time</th>
+									<th>Duration</th>
+									<th>PID</th>
+									<th>File</th>
+								</tr>
+							</thead>
+							<tbody>
+							{% for item in bundle.pcoipserver %}
+								<tr>
+									<td><div class="center"><a title="PCoIP Network Performance #{{ item.0 }}" href="perfdata_{{bundle.name}}.{{ item.0 }}.html" onclick="return popupwindow('perfdata_{{bundle.name}}.{{ item.0 }}.html','PCoIP Network Performance #{{ item.0 }}')" >{{ item.0 }}</a></div></td>
+									<td style="white-space:normal">{{ item.1 }}</td>
+									<td style="white-space:normal">{{ item.2 }}</td>
+									<td style="white-space:normal">{{ item.3 }}</td>
+									<td style="white-space:normal">{{ item.4 }}</td>
+									<td style="white-space:normal">{{ item.5 }}</td>
+								</tr>
+							{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<div class="alert alert-error">Could not find relevant files.</div>
+					{% endif %}
+				{% endfor %}
+			{% else %}
+				<div class="alert alert-error">Could not find relevant files.</div>
+			{% endif %}
+		</div>
+	</div><!-- /.tab-content -->
+</div> <!-- /.tabbable -->
+			{% if script or scripts %}
+				</div>
+			</div>
+			{% endif %}
+		</div>
+		<br/>
+		<br/>
+{%if bundles|length %}
+	{% for bundle in bundles %}
+		{%if bundle.timezone|length %}
+		<div id="div_timezone_{{bundle.index}}" title="Time Zone Information" style="display:none;">
+			<table width="800" class="table table-striped table-bordered table-condensed">
+				<thead>
+					<tr>
+						<th style="text-align:center" width="40">#</th>
+						<th>UTC Time</th>
+						<th>Local Time</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for timezone in bundle.timezone%}
+					<tr>
+						<td><div class="center">{{ forloop.counter }}</div></td>
+						<td>{{ timezone.0 }}</td>
+						<td>{{ timezone.1 }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		{%endif%}
+		{% if bundle.dumps|length %}
+		<div id="div_coredump_{{bundle.index}}" title="Found {{ bundle.dumps|length}} Application Core(s)" style="display:none;">
+			<table width="800" class="table table-striped table-bordered table-condensed sortable">
+				<thead>
+					<tr>
+						<th style="text-align:center" width="40">#</th>
+						<th width="40">Status</th>
+						<th>Dump Time</th>
+						<th>Dump Type</th>
+						<th>Dump Size</th>
+						<th>Dump File Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for dump in bundle.dumps%}
+					<tr>
+							<td><div class="center">{{ forloop.counter }}</div></td>
+							<td style="white-space:normal"><div class="center">{%if 0 == dump.2 %}<img src="/static/img/status_error.png" width="20" height="20">{% else %}<img src="/static/img/status_info.png" width="20" height="20">{%endif%}</div></td>
+							<td style="white-space:normal">{{ dump.0 }}</td>
+							<td style="white-space:normal">{%if 0 == dump.2 %}Crash{% else %}Live{% endif %}</td>
+							<td style="white-space:normal">{{ dump.3|filesizeformat }}</td>
+							<td style="white-space:normal">{{ dump.1 }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		{%endif%}
+		{% if bundle.sysinfo %}
+		<div id="div_sysinfo_{{bundle.index}}" title="System Information" style="display:none;">
+			<table width="800" class="table table-striped table-bordered table-condensed">
+				<tbody>
+					{% for item in bundle.sysinfo %}
+						<tr><td width="200" style="white-space:normal"><b>{{ item.0 }}</b></td><td style="white-space:normal">{{ item.1 }}</td></tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		{% endif%}
+	{%endfor%}
+{%endif%}
+			<div class="row">
+				<div class="span8">
+					<span>Bugzilla GreaseMonkey <a href="/static/js/Bugzilla.user.js">script</a>.</span><br>
+					<span><a href="mailto:vcdt@vmware.com">Contact us</a> for comments and suggestions. Visit our <a href="http://wiki.eng.vmware.com/CPD/VMDT30">wiki</a> for more info.</span><br>
+					<span>Best viewed with Google Chrome and Mozilla Firefox</span>
+				</div>
+				<div class="span4">
+					<img class="pull-right" id="logo" height="17px" src="/static/img/logo.png"><br/><br/>
+				</div>
+			</div>
+
+	</div> <!-- .container -->
+	<script src="/static/js/libs/bootstrap/bootstrap.min.js"></script>
+	<script src="/static/js/libs/sorttable.js"></script>
+	<script src="/static/js/input.js"></script>
+	<script src="/static/js/libs/d3.v3.min.js"></script>
+	<script src="/static/js/libs/bootstrap/tooltip.js"></script>
+	<script src="/static/js/libs/bootstrap/popover.js"></script>
+	<script>
+		$(function ()
+		{ $("#pop1").popover();
+		});
+	</script>
+
+	{% if script.name == 'uptime' %}
+	<script>
+		window.onload = function() {
+			uptimeGraph();
+		};
+	</script>
+	{% endif %}
+
+	{% if script.name == 'vcsessions' %}
+	<script>
+		window.onload = function() {
+			{% for group in groups %}
+			sessionGraph({{ group.index }});
+			{% endfor %}
+		};
+	</script>
+	{% endif %}
+
+{% if not autoRefresh %}
+	<!-- Google Analytics -->
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-34289215-1']);
+		_gaq.push(['_trackPageview']);
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		})();
+	</script>
+{% endif %}
+
+	<script>
+		$(".pop").each(function() {
+			 var $pElem= $(this);
+			 $pElem.popover(
+				  {
+					 title: getPopTitle($pElem.attr("id")),
+					 content: getPopContent($pElem.attr("id"))
+				  }
+			 );
+		});
+
+		function getPopTitle(target) {
+			 return $("#" + target + "_content > div.popTitle").html();
+		};
+
+		function getPopContent(target) {
+			 return $("#" + target + "_content > div.popContent").html();
+		};
+	</script>
+
+</body>
+</html>
